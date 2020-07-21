@@ -30,6 +30,10 @@ public class GetMSG {
         String password_email = "";
         String server_email = "";
         String port = "";
+        String rmq_srv1 = "";
+        String rmq_srv2 = "";
+        String rmq_user = "";
+        String rmq_password = "";
 
         try {
             InetAddress myHost = InetAddress.getLocalHost();
@@ -39,7 +43,7 @@ public class GetMSG {
             ex.printStackTrace();
         }
 
-        System.out.println("Hello World! CGC");
+        System.out.println("Hello World! BW");
 
         JSONParser parser = new JSONParser();
 
@@ -51,6 +55,10 @@ public class GetMSG {
             password_email = (String) jsonObject.get("password_email");
             server_email = (String) jsonObject.get("server_email");
             port = (String) jsonObject.get("port");
+            rmq_srv1 = (String) jsonObject.get("rmq_srv1");
+            rmq_srv2 = (String) jsonObject.get("rmq_srv2");
+            rmq_user = (String) jsonObject.get("rmq_user");
+            rmq_password = (String) jsonObject.get("rmq_password");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -59,19 +67,23 @@ public class GetMSG {
         }
 
         System.out.println("Inner account_email = " + account_email);
-
+        Process_GetMessage_BW(server_name,account_email,password_email,server_email,port,rmq_srv1,rmq_user,rmq_password);
+        Process_GetMessage_BW_TEST(server_name,account_email,password_email,server_email,port,rmq_srv1,rmq_user,rmq_password);
+/*
         Process_GetMessage_BW(server_name,account_email,password_email,server_email,port);
+        Process_GetMessage_BW_TEST(server_name,account_email,password_email,server_email,port);
+*/
 
     }
 
-    private static void Process_GetMessage_BW(String server_name, String account_email, String password_email, String server_email, String port) {
+    private static void Process_GetMessage_BW(String server_name, String account_email, String password_email, String server_email, String port, String rmq_srv1, String rmq_user, String rmq_password) {
         try {
             String QUEUE_NAME = "BW-PART-QUEUE";
             String email_address = "info@northeasternstarch.com";
             ConnectionFactory factory = new ConnectionFactory();
-            factory.setHost("192.168.2.40");
-            factory.setUsername("admin");
-            factory.setPassword("admin");
+            factory.setHost(rmq_srv1);
+            factory.setUsername(rmq_user);
+            factory.setPassword(rmq_password);
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
 
@@ -85,7 +97,37 @@ public class GetMSG {
                     String message = new String(body, "UTF-8");
                     String img = "<img src='http://www.cgc-carbon.com/images/BW_LOGO.PNG'><br>";
                     System.out.println(" [x] Received '" + message + "'");
-                    Send_Email("CGC", email_address, img, message + server_name , account_email ,password_email ,server_email,port);
+                    Send_Email("BW", email_address, img, message + server_name , account_email ,password_email ,server_email,port);
+                }
+            };
+            channel.basicConsume(QUEUE_NAME, true, consumer);
+        } catch (Exception ex) {
+            System.out.println("ERROR");
+        }
+    }
+
+    private static void Process_GetMessage_BW_TEST(String server_name, String account_email, String password_email, String server_email, String port, String rmq_srv1, String rmq_user, String rmq_password) {
+        try {
+            String QUEUE_NAME = "BW_TEST-PART-QUEUE";
+            String email_address = "info@northeasternstarch.com";
+            ConnectionFactory factory = new ConnectionFactory();
+            factory.setHost(rmq_srv1);
+            factory.setUsername(rmq_user);
+            factory.setPassword(rmq_password);
+            Connection connection = factory.newConnection();
+            Channel channel = connection.createChannel();
+
+            channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+            System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+
+            Consumer consumer = new DefaultConsumer(channel) {
+                @Override
+                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
+                        throws IOException {
+                    String message = new String(body, "UTF-8");
+                    String img = "<img src='http://www.cgc-carbon.com/images/BW_LOGO.PNG'><br>";
+                    System.out.println(" [x] Received '" + message + "'");
+                    Send_Email("BW", email_address, img, message + server_name , account_email ,password_email ,server_email,port);
                 }
             };
             channel.basicConsume(QUEUE_NAME, true, consumer);
